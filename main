@@ -1,0 +1,123 @@
+-- Get the player and their character
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- Create the main part
+local mainPart = Instance.new("Part")
+mainPart.Anchored = true
+mainPart.Size = Vector3.new(10, 1, 10)  -- Adjust the size as needed
+mainPart.Parent = game.Workspace
+
+-- Create a GUI
+local gui = Instance.new("ScreenGui")
+gui.Parent = player.PlayerGui
+
+-- Create a frame for the teleport and movement buttons
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 170, 0, 40)
+frame.Position = UDim2.new(1, -250, 0, 250)
+frame.Transparency = 1
+frame.BackgroundColor3 = Color3.new(0.5, 0.5, 0.5)
+frame.Parent = gui
+frame.Active = true
+frame.Draggable = true
+
+-- Create a toggle button with styling
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0.25, 0, 1, 0)
+toggleButton.Text = "Toggle"
+toggleButton.Parent = frame
+toggleButton.Style = Enum.ButtonStyle.RobloxRoundDropdownButton
+
+-- Create an "Up" button with styling
+local upButton = Instance.new("TextButton")
+upButton.Size = UDim2.new(0.25, 0, 1, 0)
+upButton.Position = UDim2.new(0.25, 0, 0, 0)
+upButton.Text = "Up"
+upButton.Parent = frame
+upButton.Style = Enum.ButtonStyle.RobloxRoundDropdownButton
+
+-- Create a "Down" button with styling
+local downButton = Instance.new("TextButton")
+downButton.Size = UDim2.new(0.25, 0, 1, 0)
+downButton.Position = UDim2.new(0.5, 0, 0, 0)
+downButton.Text = "Down"
+downButton.Parent = frame
+downButton.Style = Enum.ButtonStyle.RobloxRoundDropdownButton
+
+local isTeleporting = false
+
+-- Create a follower part (ball)
+local followerPart = Instance.new("Part")
+followerPart.Anchored = true
+followerPart.Size = Vector3.new(1, 1, 1)  -- Adjust the size as needed for a ball
+followerPart.Shape = Enum.PartType.Ball  -- Set the shape to Ball
+followerPart.Transparency = 1  -- Make it invisible
+followerPart.CanCollide = false  -- Set CanCollide to false
+followerPart.Parent = game.Workspace
+followerPart.Material = Enum.Material.Neon
+followerPart.Reflectance = 1
+
+-- Save the original walk speed
+local originalWalkSpeed = player.Character.Humanoid.WalkSpeed
+
+-- Connect the toggle function to the button
+toggleButton.MouseButton1Click:Connect(function()
+    isTeleporting = not isTeleporting
+
+    if isTeleporting then
+        -- Teleport the player above the main part
+        player.Character:SetPrimaryPartCFrame(CFrame.new(mainPart.Position + Vector3.new(0, mainPart.Size.Y/2 + 5, 0)))
+
+        -- Save the original walk speed
+		local originalWalkSpeed = player.Character.Humanoid.WalkSpeed        
+    else
+        -- Set player position to the follower part's position
+        player.Character:SetPrimaryPartCFrame(CFrame.new(followerPart.Position))
+    end
+end)
+
+-- Connect the "Up" button function
+upButton.MouseButton1Click:Connect(function()
+    if isTeleporting then
+        -- Move the follower part upwards
+        followerPart.Position = Vector3.new(followerPart.Position.X, followerPart.Position.Y + 5, followerPart.Position.Z)
+    end
+end)
+
+-- Connect the "Down" button function
+downButton.MouseButton1Click:Connect(function()
+    if isTeleporting then
+        -- Move the follower part downwards
+        followerPart.Position = Vector3.new(followerPart.Position.X, followerPart.Position.Y - 5, followerPart.Position.Z)
+    end
+end)
+
+-- Heartbeat event to update the parts' positions and handle CameraSubject
+game:GetService("RunService").Heartbeat:Connect(function()
+    mainPart.Position = Vector3.new(character.HumanoidRootPart.CFrame.Position.X, 9999, character.HumanoidRootPart.CFrame.Position.Z)
+    mainPart.CanCollide = true
+    
+    if isTeleporting then
+        -- Make the follower part follow the player's X and Z coordinates
+        followerPart.Position = Vector3.new(character.HumanoidRootPart.Position.X, followerPart.Position.Y, character.HumanoidRootPart.Position.Z)
+        
+        -- Set CameraSubject to follower part when player is teleported
+        game.Workspace.CurrentCamera.CameraSubject = followerPart
+        followerPart.Transparency = 0.5
+        player.Character:SetPrimaryPartCFrame(CFrame.new(mainPart.Position + Vector3.new(0, mainPart.Size.Y/2 + 2, 0)))
+        
+        -- Set walk speed to 40 when teleported
+        player.Character.Humanoid.WalkSpeed = 40
+    else
+        -- Make the follower part follow the player's position
+        followerPart.Position = character.HumanoidRootPart.CFrame.Position
+        
+        -- Reset CameraSubject to player when not teleported
+        game.Workspace.CurrentCamera.CameraSubject = player.Character.Humanoid
+        followerPart.Transparency = 1
+        
+        -- Set walk speed back to the original value when not teleported
+        player.Character.Humanoid.WalkSpeed = originalWalkSpeed
+    end
+end)
